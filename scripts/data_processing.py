@@ -93,3 +93,111 @@ def clean_experience_column(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
     """
     df[column_name] = df[column_name].apply(clean_expirence_value)
     return df
+
+
+TOOL_MAPPING = {
+    'pbi': 'power bi',
+    'power query': 'power bi',
+    'power bi desktop': 'power bi',
+    'power bi service': 'power bi',
+    'fabric': 'microsoft fabric',
+    'postgres': 'postgresql',
+}
+
+SPECIAL_CASES = {
+    'Sql': 'SQL',
+    'Sap': 'SAP',
+    'Dax': 'DAX',
+    'Ai': 'AI',
+    'Power Bi': 'Power BI',
+    
+    'Ssms': 'SSMS',
+    'Ssrs': 'SSRS',
+    'Ssas': 'SSAS',
+    'Ssis': 'SSIS',
+    'T-Sql': 'T-SQL',
+    
+    'Javascript': 'JavaScript',
+    'Php': 'PHP',
+    'C#': 'C#',
+    
+    'Latex': 'LaTeX',
+    'Postgresql': 'PostgreSQL',
+    'Ms Lists': 'MS Lists',
+    'Langchain': 'LangChain',
+    'Microsoft Fabric': 'Microsoft Fabric',
+}
+
+
+def normalize_tool_name(tool_name: str) -> str or None:
+    """
+    Normalize a single tool name.
+    1. Remove garbage
+    2. Map synonyms (only real synonyms)
+    3. Capitalize all
+    4. Override special cases (acronyms)
+    
+    Returns None for garbage entries.
+    """
+    if not isinstance(tool_name, str):
+        return None
+    
+    normalized = tool_name.strip().lower()
+    
+    if len(normalized) > 30:
+        return None
+    if '!' in normalized or '?' in normalized:
+        return None
+    if len(normalized) < 2:
+        return None
+    
+    if normalized in TOOL_MAPPING:
+        normalized = TOOL_MAPPING[normalized]
+    
+    normalized = normalized.title()
+    
+    if normalized in SPECIAL_CASES:
+        normalized = SPECIAL_CASES[normalized]
+    
+    return normalized
+
+def clean_tools_column(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
+    """
+    Clean the tools column by splitting the string into a list of tools.
+
+    Parameters:
+    df (pd.DataFrame): The DataFrame containing the tools column.
+    column_name (str): The name of the tools column to clean.
+
+    Returns:
+    pd.DataFrame: The DataFrame with the cleaned tools column.
+    """
+    def clean_and_normalize(x):
+        if not isinstance(x, str):
+            pass
+        
+        tools = [tool.strip() for tool in x.split(',')]
+        
+        normalized_tools = [normalize_tool_name(tool) for tool in tools]
+        
+        clean_tools = [t for t in normalized_tools if t is not None]
+        
+        return clean_tools
+    
+    df[column_name] = df[column_name].apply(clean_and_normalize)
+    return df
+
+
+def clean_working_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove irrelevant columns from working people dataset.
+    """
+    return df.drop(columns=['oczekiwania_junior'])
+
+
+def clean_jobseekers_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove work-related columns from job seekers dataset.
+    """
+    columns_to_drop = ['stanowisko', 'typ_umowy', 'wymiar', 'zarobki', 'doswiadczenie', 'narzedzia']
+    return df.drop(columns=columns_to_drop)
